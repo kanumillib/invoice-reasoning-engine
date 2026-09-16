@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 Decision = Literal["approve", "flag", "reject", "pending"]
-ExtractionMethod = Literal["text", "ocr"]
+ExtractionSource = Literal["text_layer", "ocr"]
 ReasonCode = Literal["missing_data", "duplicate", "no_po_match", "amount_mismatch", "partial", "within_tolerance"]
 
 
@@ -29,7 +29,7 @@ class InvoiceFields(BaseModel):
 
 class InvoiceProcessResponse(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    extraction_method: ExtractionMethod
+    extraction_source: ExtractionSource
     extracted: InvoiceFields
     matched_po: PurchaseOrder | None = None
     match_method: Literal["po_reference", "vendor_amount"] | None = None
@@ -45,7 +45,6 @@ class SampleInvoice(BaseModel):
     key: str
     label: str
     description: str
-    extraction_method: ExtractionMethod
 
 
 class Summary(BaseModel):

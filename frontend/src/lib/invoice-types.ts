@@ -1,5 +1,5 @@
 export type Decision = "approve" | "flag" | "reject" | "pending";
-export type ExtractionMethod = "text" | "ocr";
+export type ExtractionSource = "text_layer" | "ocr";
 
 export interface PurchaseOrder {
   id: string;
@@ -20,7 +20,7 @@ export interface InvoiceFields {
 
 export interface InvoiceProcessResponse {
   id: string;
-  extraction_method: ExtractionMethod;
+  extraction_source: ExtractionSource;
   extracted: InvoiceFields;
   matched_po: PurchaseOrder | null;
   match_method: "po_reference" | "vendor_amount" | null;
@@ -36,7 +36,6 @@ export interface SampleInvoice {
   key: string;
   label: string;
   description: string;
-  extraction_method: ExtractionMethod;
 }
 
 export interface Summary {

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { apiGet, apiPostForm } from "@/lib/api";
-import type { Decision, ExtractionMethod, InvoiceProcessResponse, PurchaseOrder, SampleInvoice } from "@/lib/invoice-types";
+import type { Decision, InvoiceProcessResponse, PurchaseOrder, SampleInvoice } from "@/lib/invoice-types";
 
 const decisionStyles: Record<Decision, string> = {
   approve: "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-300",
@@ -80,9 +80,9 @@ function ExtractionCard({ result }: { result: InvoiceProcessResponse }) {
               <p className="label-mono" data-testid="extraction-kicker">STAGE 01 · EXTRACTION</p>
               <CardTitle className="mt-1" data-testid="extraction-title">Invoice fields recovered</CardTitle>
             </div>
-            <Badge className={result.extraction_method === "ocr" ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300" : "border-border bg-muted text-foreground"} data-testid="extraction-method-badge">
-              {result.extraction_method === "ocr" ? <ScanLine className="size-3" aria-hidden="true" /> : <FileText className="size-3" aria-hidden="true" />}
-              {result.extraction_method === "ocr" ? "OCR fallback" : "Text layer"}
+            <Badge className={result.extraction_source === "ocr" ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:bg-amber-500/20 dark:text-amber-300" : "border-border bg-muted text-foreground"} data-testid="extraction-method-badge">
+              {result.extraction_source === "ocr" ? <ScanLine className="size-3" aria-hidden="true" /> : <FileText className="size-3" aria-hidden="true" />}
+              {result.extraction_source === "ocr" ? "OCR · Tesseract" : "Text layer"}
             </Badge>
           </div>
           <CardDescription data-testid="extraction-description">The agent records the source path so reviewers can see how reliable the field recovery was.</CardDescription>

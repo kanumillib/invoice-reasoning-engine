@@ -19,49 +19,16 @@ from models.invoice import (
 
 router = APIRouter(prefix="/invoices", tags=["invoices"])
 
+# These are source-document scenarios, not extracted results. Every sample is rendered
+# into a PDF and then sent through the same extraction path as an uploaded file.
 SAMPLE_INVOICES: dict[str, dict[str, Any]] = {
-    "happy": {
-        "label": "Happy path",
-        "description": "Acme invoice inside PO tolerance",
-        "extraction_method": "text",
-        "fields": {"vendor_name": "Acme Corporation", "invoice_number": "INV-1001", "invoice_date": "2025-02-14", "po_reference": "PO-1001", "total_amount": 8400.0},
-    },
-    "split-1": {
-        "label": "Split PO · 1 of 2",
-        "description": "First half of a legitimate split bill",
-        "extraction_method": "text",
-        "fields": {"vendor_name": "Globex Industries", "invoice_number": "INV-2001", "invoice_date": "2025-02-15", "po_reference": "PO-1002", "total_amount": 5000.0},
-    },
-    "split-2": {
-        "label": "Split PO · 2 of 2",
-        "description": "Second half completes the same PO",
-        "extraction_method": "text",
-        "fields": {"vendor_name": "Globex Industries", "invoice_number": "INV-2002", "invoice_date": "2025-02-16", "po_reference": "PO-1002", "total_amount": 5000.0},
-    },
-    "over-tolerance": {
-        "label": "Over tolerance",
-        "description": "Amount lands above the PO ceiling",
-        "extraction_method": "text",
-        "fields": {"vendor_name": "Northstar Industrial", "invoice_number": "INV-3001", "invoice_date": "2025-02-17", "po_reference": "PO-1003", "total_amount": 10200.0},
-    },
-    "scanned": {
-        "label": "Scanned / OCR",
-        "description": "No text layer · local OCR fallback",
-        "extraction_method": "ocr",
-        "fields": {"vendor_name": "Vertex Supplies", "invoice_number": "INV-4001", "invoice_date": "2025-02-18", "po_reference": None, "total_amount": 6000.0},
-    },
-    "missing-total": {
-        "label": "Missing total",
-        "description": "Critical amount field is absent",
-        "extraction_method": "text",
-        "fields": {"vendor_name": "Acme Corporation", "invoice_number": "INV-5001", "invoice_date": "2025-02-19", "po_reference": "PO-1004", "total_amount": None},
-    },
-    "duplicate": {
-        "label": "Duplicate resubmission",
-        "description": "Same invoice number as the happy path",
-        "extraction_method": "text",
-        "fields": {"vendor_name": "Acme Corporation", "invoice_number": "INV-1001", "invoice_date": "2025-02-14", "po_reference": "PO-1001", "total_amount": 8400.0},
-    },
+    "happy": {"label": "Happy path", "description": "Acme invoice inside PO tolerance", "render": "text", "lines": ["Vendor Name: Acme Corporation", "Invoice Number: INV-1001", "Invoice Date: 2025-02-14", "PO Reference: PO-1001", "Total Amount: $8,400.00"]},
+    "split-1": {"label": "Split PO · 1 of 2", "description": "First half of a legitimate split bill", "render": "text", "lines": ["Vendor Name: Globex Industries", "Invoice Number: INV-2001", "Invoice Date: 2025-02-15", "PO Reference: PO-1002", "Total Amount: $5,000.00"]},
+    "split-2": {"label": "Split PO · 2 of 2", "description": "Second half completes the same PO", "render": "text", "lines": ["Vendor Name: Globex Industries", "Invoice Number: INV-2002", "Invoice Date: 2025-02-16", "PO Reference: PO-1002", "Total Amount: $5,000.00"]},
+    "over-tolerance": {"label": "Over tolerance", "description": "Amount lands above the PO ceiling", "render": "text", "lines": ["Vendor Name: Northstar Industrial", "Invoice Number: INV-3001", "Invoice Date: 2025-02-17", "PO Reference: PO-1003", "Total Amount: $10,200.00"]},
+    "scanned": {"label": "Scanned / OCR", "description": "No text layer · real local Tesseract OCR", "render": "scanned", "lines": ["Vendor Name: Vertex Supplies", "Invoice Number: INV-4001", "Invoice Date: 2025-02-18", "Total Amount: $6,000.00"]},
+    "missing-total": {"label": "Missing total", "description": "Critical amount field is absent", "render": "text", "lines": ["Vendor Name: Acme Corporation", "Invoice Number: INV-5001", "Invoice Date: 2025-02-19", "PO Reference: PO-1004"]},
+    "duplicate": {"label": "Duplicate resubmission", "description": "Same invoice number as the happy path", "render": "text", "lines": ["Vendor Name: Acme Corporation", "Invoice Number: INV-1001", "Invoice Date: 2025-02-14", "PO Reference: PO-1001", "Total Amount: $8,400.00"]},
 }
 
 
@@ -84,13 +51,13 @@ def _parse_text_fields(text: str) -> InvoiceFields:
         match = re.search(pattern, text, re.IGNORECASE | re.MULTILINE)
         return _clean(match.group(1)) if match else None
 
-    amount_match = re.search(r"(?:total\s*(?:amount|due)?|amount\s*due)\s*[:#-]?\s*\$?\s*([\d,]+(?:\.\d{1,2})?)", text, re.IGNORECASE)
-    date = field(r"(?:invoice\s*date|date)\s*[:#-]?\s*([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{2,4})")
+    amount_match = re.search(r"(?:total[ \t]*(?:amount|due)?|amount[ \t]*due)[ \t]*[:#-]?[ \t]*\$?[ \t]*([\d,]+(?:\.\d{1,2})?)", text, re.IGNORECASE)
+    date = field(r"(?:invoice[ \t]*date|date)[ \t]*[:#-]?[ \t]*([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{1,2}[/-][0-9]{1,2}[/-][0-9]{2,4})")
     return InvoiceFields(
-        vendor_name=field(r"vendor(?:\s*name)?\s*[:#-]\s*(.+)$"),
-        invoice_number=field(r"invoice\s*(?:number|no\.?|#)\s*[:#-]\s*([A-Z0-9-]+)"),
+        vendor_name=field(r"vendor(?:[ \t]*name)?[ \t]*[:#-][ \t]*(.+)$"),
+        invoice_number=field(r"invoice[ \t]*(?:number|no\.?|#)[ \t]*[:#-][ \t]*([A-Z0-9-]+)"),
         invoice_date=date,
-        po_reference=field(r"(?:po|purchase\s*order)(?:\s*reference|\s*number|\s*no\.?)?\s*[:#-]\s*([A-Z0-9-]+)"),
+        po_reference=field(r"(?:po|purchase[ \t]*order)(?:[ \t]*reference|[ \t]*number|[ \t]*no\.?)?[ \t]*[:#-][ \t]*([A-Z0-9-]+)"),
         total_amount=_parse_amount(amount_match.group(1) if amount_match else None),
     )
 
@@ -102,11 +69,89 @@ def _extract_pdf_text(content: bytes) -> str:
         reader = PdfReader(io.BytesIO(content))
         return "\n".join(page.extract_text() or "" for page in reader.pages)
     except Exception:
-        return content.decode("latin-1", errors="ignore")
+        # A parse failure is treated as having no text layer; OCR gets the chance to read it.
+        return ""
 
 
-def _has_extractable_fields(fields: InvoiceFields) -> bool:
-    return any(value is not None for value in fields.model_dump().values())
+def _ocr_pdf_text(content: bytes) -> str:
+    from pdf2image import convert_from_bytes
+    import pytesseract
+
+    images = convert_from_bytes(content, dpi=250, fmt="png", thread_count=1)
+    return "\n".join(pytesseract.image_to_string(image, config="--psm 6") for image in images)
+
+
+def _extract_fields_from_pdf(content: bytes) -> tuple[InvoiceFields, str]:
+    text = _extract_pdf_text(content)
+    if text.strip():
+        return _parse_text_fields(text), "text_layer"
+    try:
+        ocr_text = _ocr_pdf_text(content)
+    except Exception as exc:
+        raise HTTPException(status_code=422, detail=f"OCR could not process this scanned PDF: {exc}") from exc
+    return _parse_text_fields(ocr_text), "ocr"
+
+
+def _pdf_escape(value: str) -> str:
+    return value.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")
+
+
+def _build_text_pdf(lines: list[str]) -> bytes:
+    commands = ["BT", "/F1 18 Tf", "72 720 Td"]
+    for index, line in enumerate(lines):
+        if index:
+            commands.append("0 -34 Td")
+        commands.append(f"({_pdf_escape(line)}) Tj")
+    commands.append("ET")
+    stream = "\n".join(commands).encode("latin-1")
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"<< /Length " + str(len(stream)).encode() + b" >>\nstream\n" + stream + b"\nendstream",
+    ]
+    pdf = bytearray(b"%PDF-1.4\n")
+    offsets = [0]
+    for number, obj in enumerate(objects, start=1):
+        offsets.append(len(pdf))
+        pdf.extend(f"{number} 0 obj\n".encode())
+        pdf.extend(obj)
+        pdf.extend(b"\nendobj\n")
+    xref_offset = len(pdf)
+    pdf.extend(f"xref\n0 {len(objects) + 1}\n".encode())
+    pdf.extend(b"0000000000 65535 f \n")
+    for offset in offsets[1:]:
+        pdf.extend(f"{offset:010d} 00000 n \n".encode())
+    pdf.extend(f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref_offset}\n%%EOF\n".encode())
+    return bytes(pdf)
+
+
+def _build_scanned_pdf(lines: list[str]) -> bytes:
+    from PIL import Image, ImageDraw, ImageFont
+
+    image = Image.new("RGB", (1700, 2200), "white")
+    draw = ImageDraw.Draw(image)
+    try:
+        heading = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", 64)
+        body = ImageFont.truetype("/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf", 44)
+    except OSError:
+        heading = body = ImageFont.load_default()
+    draw.text((150, 160), "VENDOR INVOICE", fill="black", font=heading)
+    y = 380
+    for line in lines:
+        draw.text((150, y), line, fill="black", font=body)
+        y += 115
+    output = io.BytesIO()
+    image.save(output, format="PDF", resolution=150.0)
+    return output.getvalue()
+
+
+def _sample_pdf(key: str) -> bytes:
+    sample = SAMPLE_INVOICES.get(key)
+    if sample is None:
+        raise HTTPException(status_code=400, detail="Unknown sample invoice")
+    return _build_scanned_pdf(sample["lines"]) if sample["render"] == "scanned" else _build_text_pdf(sample["lines"])
 
 
 async def _get_po(po_number: str) -> PurchaseOrder | None:
@@ -132,9 +177,9 @@ async def _cumulative_for_po(po_number: str) -> float:
     return sum(float(row.get("extracted", {}).get("total_amount") or 0) for row in rows)
 
 
-async def _process_fields(fields: InvoiceFields, extraction_method: str) -> InvoiceProcessResponse:
+async def _process_fields(fields: InvoiceFields, extraction_source: str) -> InvoiceProcessResponse:
     now = datetime.now(timezone.utc)
-    base = {"extraction_method": extraction_method, "extracted": fields.model_dump(), "processed_at": now}
+    base = {"extraction_source": extraction_source, "extracted": fields.model_dump(), "processed_at": now}
 
     if fields.total_amount is None or fields.invoice_number is None:
         response = InvoiceProcessResponse(**base, decision="flag", reason_code="missing_data", reason="Critical data is missing: invoice number and total amount are required before approval.")
@@ -174,16 +219,9 @@ async def _process_fields(fields: InvoiceFields, extraction_method: str) -> Invo
     return response
 
 
-def _fields_from_sample(key: str) -> tuple[InvoiceFields, str]:
-    sample = SAMPLE_INVOICES.get(key)
-    if sample is None:
-        raise HTTPException(status_code=400, detail="Unknown sample invoice")
-    return InvoiceFields(**sample["fields"]), sample["extraction_method"]
-
-
 @router.get("/samples", response_model=list[SampleInvoice])
 async def get_samples() -> list[SampleInvoice]:
-    return [SampleInvoice(key=key, label=value["label"], description=value["description"], extraction_method=value["extraction_method"]) for key, value in SAMPLE_INVOICES.items()]
+    return [SampleInvoice(key=key, label=value["label"], description=value["description"]) for key, value in SAMPLE_INVOICES.items()]
 
 
 @router.post("/process", response_model=InvoiceProcessResponse)
@@ -192,30 +230,28 @@ async def process_invoice(file: UploadFile | None = File(default=None), sample_k
         raise HTTPException(status_code=400, detail="Upload a PDF or choose a sample invoice")
 
     if sample_key:
-        fields, extraction_method = _fields_from_sample(sample_key)
         if sample_key == "duplicate" and not await db.invoices.find_one({"extracted.invoice_number": "INV-1001", "extracted.vendor_name": "Acme Corporation", "reason_code": {"$ne": "duplicate"}}):
-            happy_fields, happy_method = _fields_from_sample("happy")
-            await _process_fields(happy_fields, happy_method)
-        return await _process_fields(fields, extraction_method)
+            happy_fields, happy_source = _extract_fields_from_pdf(_sample_pdf("happy"))
+            await _process_fields(happy_fields, happy_source)
+        fields, extraction_source = _extract_fields_from_pdf(_sample_pdf(sample_key))
+        return await _process_fields(fields, extraction_source)
 
     if not file or not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF invoices are supported")
     content = await file.read()
-    text = _extract_pdf_text(content)
-    fields = _parse_text_fields(text)
-    extraction_method = "text" if _has_extractable_fields(fields) else "ocr"
-    if extraction_method == "ocr":
-        # The demo keeps OCR local and deterministic. A scanned sample is backed by the
-        # same path; uploaded image-only PDFs still surface the OCR method and any text
-        # hints that a local OCR engine can provide in a later deployment.
-        fields = _parse_text_fields(content.decode("latin-1", errors="ignore"))
-    return await _process_fields(fields, extraction_method)
+    fields, extraction_source = _extract_fields_from_pdf(content)
+    return await _process_fields(fields, extraction_source)
 
 
 @router.get("/history", response_model=list[InvoiceProcessResponse])
 async def get_history() -> list[InvoiceProcessResponse]:
     rows = await db.invoices.find({"demo_seed": {"$ne": True}}).sort("processed_at", -1).to_list(1000)
-    return [InvoiceProcessResponse(**{key: row[key] for key in InvoiceProcessResponse.model_fields if key in row}) for row in rows]
+    results: list[InvoiceProcessResponse] = []
+    for row in rows:
+        if "extraction_source" not in row:
+            row["extraction_source"] = "ocr" if row.get("extraction_method") == "ocr" else "text_layer"
+        results.append(InvoiceProcessResponse(**{key: row[key] for key in InvoiceProcessResponse.model_fields if key in row}))
+    return results
 
 
 @router.get("/summary", response_model=Summary)
