@@ -57,7 +57,7 @@ def _parse_text_fields(text: str) -> InvoiceFields:
         vendor_name=field(r"vendor(?:[ \t]*name)?[ \t]*[:#-][ \t]*(.+)$"),
         invoice_number=field(r"invoice[ \t]*(?:number|no\.?|#)[ \t]*[:#-][ \t]*([A-Z0-9-]+)"),
         invoice_date=date,
-        po_reference=field(r"(?:po|purchase[ \t]*order)(?:[ \t]*reference|[ \t]*number|[ \t]*no\.?)?[ \t]*[:#-][ \t]*([A-Z0-9-]+)"),
+        po_reference=field(r"\b(?:po|purchase[ \t]*order)(?:[ \t]*reference|[ \t]*number|[ \t]*no\.?)?[ \t]*[:#-][ \t]*([A-Z0-9-]+)"),
         total_amount=_parse_amount(amount_match.group(1) if amount_match else None),
     )
 
