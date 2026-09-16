@@ -1,0 +1,27 @@
+{
+  "passed": 16,
+  "failed": 0,
+  "bugs": [],
+  "action_items": [
+    "Backend tests pass serially (8/8); the repository pytest.ini defaults to two xdist workers against one shared demo session, so the parallel invocation can race between reset/process operations."
+  ],
+  "retest_needed": false,
+  "checks": [
+    {"criterion":"Live Run accepts a sample invoice and reveals Extraction, PO Matching, and Decision stages sequentially","name":"live-run-happy-path","lane":"browser","status":"passed","evidence":"Playwright: clicked sample-invoice-happy-button; extraction, matching, and decision pipeline details reached Complete; decision-label=approve and reason code contains within tolerance."},
+    {"criterion":"Extraction displays fields and method","name":"extraction-fields-method","lane":"browser","status":"passed","evidence":"Playwright: extraction-results-card displayed vendor, invoice number, date, PO reference, total amount, and extraction-method-badge=Text layer."},
+    {"criterion":"Decision rules are applied in order with readable reasons","name":"decision-rules-branches","lane":"browser","status":"passed","evidence":"Playwright: Missing total displayed missing_data/flag and Over tolerance displayed amount_mismatch/flag with visible reason text."},
+    {"criterion":"Split PO cumulative billing supports partial then completion","name":"split-po-completes","lane":"browser","status":"passed","evidence":"Playwright: Split PO 1 of 2 displayed pending/partial; Split PO 2 of 2 displayed approve/within tolerance."},
+    {"criterion":"OCR sample uses the OCR path","name":"scanned-ocr-path","lane":"browser","status":"passed","evidence":"Playwright: Scanned / OCR displayed OCR fallback and completed matching/decision evidence."},
+    {"criterion":"Duplicate resubmission is rejected","name":"duplicate-resubmission-rejected","lane":"browser","status":"passed","evidence":"Playwright: after happy approve, duplicate fixture displayed decision-label=reject, reason code duplicate, and resubmission reason."},
+    {"criterion":"Dashboard shows session history and decision counts","name":"dashboard-history-counts","lane":"browser","status":"passed","evidence":"Playwright: dashboard displayed all five summary cards and history row with INV-1001, Acme Corporation, $8,400.00."},
+    {"criterion":"PO reference data is visible","name":"po-reference-data-visible","lane":"browser","status":"passed","evidence":"Playwright: purchase order database and six seeded PO numbers PO-1001 through PO-1006 were visible."},
+    {"criterion":"Live Run accepts a sample invoice and reveals Extraction, PO Matching, and Decision stages sequentially","name":"test_tscheck_happy.py::test_happy_processes","lane":"backend","status":"passed","evidence":"HTTP POST /api/invoices/process with sample_key=happy returned 200; response decision=approve, reason_code=within_tolerance, matched PO=PO-1001."},
+    {"criterion":"Extraction displays fields and method","name":"test_tscheck_extraction.py::test_extraction_fields_and_method","lane":"backend","status":"passed","evidence":"HTTP POST /api/invoices/process returned 200; response contained expected extracted fields and extraction_method=text."},
+    {"criterion":"Decision rules are applied in order with readable reasons","name":"test_tscheck_decisions.py::test_decision_order_branches","lane":"backend","status":"passed","evidence":"HTTP POST /api/invoices/process returned 200 for missing-total and over-tolerance; responses were flag/missing_data and flag/amount_mismatch with reasons."},
+    {"criterion":"Split PO cumulative billing supports partial then completion","name":"test_tscheck_split.py::test_split_po_progression","lane":"backend","status":"passed","evidence":"Two HTTP POST /api/invoices/process calls returned 200; split responses were pending/partial then approve/within_tolerance with cumulative progress."},
+    {"criterion":"OCR sample uses the OCR path","name":"test_tscheck_ocr.py::test_scanned_ocr_fallback","lane":"backend","status":"passed","evidence":"HTTP POST /api/invoices/process with scanned returned 200; extraction_method=ocr and completed decision with reason."},
+    {"criterion":"Duplicate resubmission is rejected","name":"test_tscheck_duplicate.py::test_duplicate_rejected","lane":"backend","status":"passed","evidence":"Two HTTP POST /api/invoices/process calls returned 200; second response was reject/duplicate with resubmission reason."},
+    {"criterion":"Dashboard shows session history and decision counts","name":"test_tscheck_dashboard.py::test_dashboard_summary_and_history","lane":"backend","status":"passed","evidence":"HTTP GET /api/invoices/summary and /api/invoices/history returned 200; summary approve/total and created invoice id were present."},
+    {"criterion":"PO reference data is visible","name":"test_tscheck_pos.py::test_seeded_purchase_orders_visible","lane":"backend","status":"passed","evidence":"HTTP GET /api/invoices/pos returned 200 with six seeded PO records PO-1001 through PO-1006."}
+  ]
+}

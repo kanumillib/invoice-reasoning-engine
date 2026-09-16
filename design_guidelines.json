@@ -1,0 +1,156 @@
+{
+  "project_name": "Invoice-to-Decision Agent",
+  "design_context": {
+    "type": "DASHBOARDS & OPERATIONAL WORKSPACE",
+    "theme_preference": "System Default / Light & Dark Toggle supported with restrained high-contrast financial palette",
+    "archetype": "Swiss & High-Contrast + Tactical Audit Precision",
+    "emotional_tone": "Authoritative, Transparent, Precision-driven, Highly Explainable"
+  },
+  "color_system": {
+    "palette": {
+      "primary": "oklch(0.205 0 0)",
+      "primary_foreground": "oklch(0.985 0 0)",
+      "background": "oklch(0.985 0 0)",
+      "surface_card": "oklch(1 0 0)",
+      "border": "oklch(0.910 0 0)",
+      "accent_neutral": "oklch(0.960 0 0)"
+    },
+    "status_colors": {
+      "approve": {
+        "badge_bg": "bg-emerald-500/10 dark:bg-emerald-500/20",
+        "badge_text": "text-emerald-700 dark:text-emerald-300",
+        "border": "border-emerald-500/30",
+        "glow": "shadow-[0_0_12px_rgba(16,185,129,0.15)]"
+      },
+      "flag": {
+        "badge_bg": "bg-amber-500/10 dark:bg-amber-500/20",
+        "badge_text": "text-amber-700 dark:text-amber-300",
+        "border": "border-amber-500/30",
+        "glow": "shadow-[0_0_12px_rgba(245,158,11,0.15)]"
+      },
+      "reject": {
+        "badge_bg": "bg-rose-500/10 dark:bg-rose-500/20",
+        "badge_text": "text-rose-700 dark:text-rose-300",
+        "border": "border-rose-500/30",
+        "glow": "shadow-[0_0_12px_rgba(244,63,94,0.15)]"
+      },
+      "pending": {
+        "badge_bg": "bg-sky-500/10 dark:bg-sky-500/20",
+        "badge_text": "text-sky-700 dark:text-sky-300",
+        "border": "border-sky-500/30",
+        "glow": "shadow-[0_0_12px_rgba(14,165,233,0.15)]"
+      }
+    },
+    "forbidden_colors": [
+      "#7351B7 (Forbidden AI Purple)",
+      "#1B93A4 (Forbidden Dashboard Teal)"
+    ]
+  },
+  "typography": {
+    "font_family_heading": "'Geist Variable', 'Outfit', sans-serif",
+    "font_family_body": "'Geist Variable', 'Inter', sans-serif",
+    "font_family_mono": "'Geist Mono Variable', 'IBM Plex Mono', monospace",
+    "forbidden_fonts": ["Space Grotesk"],
+    "hierarchy": {
+      "h1_title": "text-3xl sm:text-4xl font-semibold tracking-tight",
+      "h2_section": "text-xl sm:text-2xl font-medium tracking-tight",
+      "h3_card": "text-base sm:text-lg font-medium",
+      "body": "text-sm leading-relaxed text-muted-foreground",
+      "labels_mono": "font-mono text-xs uppercase tracking-wider text-muted-foreground"
+    }
+  },
+  "layout_and_spacing": {
+    "container": "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-8",
+    "grid_live_run": "grid grid-cols-1 lg:grid-cols-12 gap-6 items-start",
+    "live_run_left_panel": "lg:col-span-5 space-y-6",
+    "live_run_right_panel": "lg:col-span-7 space-y-6",
+    "dashboard_grid": "grid grid-cols-1 md:grid-cols-4 gap-4",
+    "card_padding": "p-5 sm:p-6"
+  },
+  "components_structure": {
+    "header": {
+      "description": "Sticky top bar with glassmorphism blur (backdrop-blur-md bg-background/80), showing brand logo 'Invoice-to-Decision Agent', session reset, mode switcher, and live backend connection state indicator.",
+      "data_testid": "app-header"
+    },
+    "sample_presets_selector": {
+      "description": "Interactive card offering 6 quick test invoices matching all test criteria (Happy Path, Split PO Invoice 1, Split PO Invoice 2, Over-tolerance, Scanned/OCR, Missing Data, Duplicate). Allows 1-click execution.",
+      "data_testid": "sample-invoice-selector"
+    },
+    "pdf_uploader": {
+      "description": "Drag-and-drop PDF dropzone with file preview, size check, sample pre-fill trigger, and instant submission button.",
+      "data_testid": "pdf-dropzone"
+    },
+    "live_pipeline_stage_tracker": {
+      "description": "3-Stage Animated Stepper showing sequential processing (Stage 1: Extraction -> Stage 2: PO Matching -> Stage 3: Validation & Decision). Features active scanning ripples, step duration timers, and status badges.",
+      "data_testid": "live-pipeline-tracker"
+    },
+    "extraction_details_card": {
+      "description": "Displays extracted key-value pairs (vendor_name, invoice_number, invoice_date, po_reference, total_amount) and extraction method badge (Direct Text Layer vs Local OCR Fallback).",
+      "data_testid": "extraction-results-card"
+    },
+    "po_matching_card": {
+      "description": "Displays direct PO lookup match or Fallback match (Vendor Name + 5% amount range). Highlights matched PO details: PO Number, Vendor, PO Amount, Tolerance %, and Current Billed Status.",
+      "data_testid": "po-matching-card"
+    },
+    "decision_card": {
+      "description": "Hero result banner showcasing Decision Badge (APPROVE, FLAG, REJECT, PENDING), clear Human-Readable Explanation, exact validation rule triggered, and cumulative split-PO progress bar.",
+      "data_testid": "decision-result-card"
+    },
+    "po_database_modal_table": {
+      "description": "Accessible tab or drawer showing seeded PO Dataset (6 POs) with cumulative amounts, vendor details, and status so users can cross-verify PO matching logic.",
+      "data_testid": "po-database-table"
+    },
+    "session_history_dashboard": {
+      "description": "Summary KPI metric cards (Total Invoices Processed, Approved, Flagged, Rejected, Pending) and full audit history table with sortable columns, search filter, and row details drawer.",
+      "data_testid": "history-dashboard-section"
+    }
+  },
+  "motion_and_sequencing": {
+    "live_run_delay_ms": 700,
+    "stage_sequence": [
+      {
+        "stage": 1,
+        "name": "PDF Text & Image Extraction",
+        "description": "Extracting fields via PyPDF/pdfplumber or OCR fallback engine..."
+      },
+      {
+        "stage": 2,
+        "name": "PO Database Match",
+        "description": "Querying PO reference or searching vendor + 5% amount tolerance matrix..."
+      },
+      {
+        "stage": 3,
+        "name": "Validation Rule Cascade & Cumulative Check",
+        "description": "Checking missing fields, duplicates, cumulative split-PO limits, and tolerances..."
+      }
+    ],
+    "framer_motion_props": {
+      "initial": "{ opacity: 0, y: 12 }",
+      "animate": "{ opacity: 1, y: 0 }",
+      "transition": "{ duration: 0.35, ease: 'easeOut' }"
+    }
+  },
+  "image_urls": [
+    {
+      "category": "hero_workspace",
+      "url": "https://images.pexels.com/photos/8872719/pexels-photo-8872719.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=650&w=940",
+      "description": "Hands sorting invoices and documents on an office desk, showcasing operational invoice review"
+    },
+    {
+      "category": "dashboard_header_bg",
+      "url": "https://images.unsplash.com/photo-1762427354051-a9bdb181ae3b?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxNzV8MHwxfHNlYXJjaHxfYXJjaGl0ZWN0dXJl",
+      "description": "Analytical finance desk with calculator, charts, and binders"
+    }
+  ],
+  "instructions_to_main_agent": [
+    "Ensure ALL interactive elements (buttons, dropzone, table rows, filter tabs, modal toggles) have strict data-testid attributes.",
+    "Implement sequential live-run stage execution with visible micro-delays (e.g., 600-800ms between stages) so users see Extraction -> Matching -> Decision unfolding live.",
+    "Make sure the cumulative split-PO tracking clearly shows how multiple invoices against the same PO build up total billed amount.",
+    "Show the Extraction Method Badge clearly: 'Text Layer (PDF Direct)' in neutral dark badge vs 'OCR Fallback (Scanned PDF)' in amber/purple tactile badge.",
+    "Include sample buttons pre-seeded with all 6 required scenario files so the reviewer can run the entire test suite in seconds without uploading manual PDFs.",
+    "Do not use transparent dropdown/popover backgrounds; use solid or high-opacity backdrop-blur panels.",
+    "Use Javascript (.jsx / .js) files matching the repository stack."
+  ]
+},
+overwrite:true,
+path:
