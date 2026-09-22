@@ -8,7 +8,7 @@ Processes vendor invoice PDFs or generated demo PDFs through extraction, PO matc
 - `invoices`: extracted invoice fields, actual extraction source (`text_layer` or `ocr`), matched PO, cumulative amount/progress, decision, reason code, human-readable reason, UTC processed timestamp.
 
 ## Decision order
-Missing invoice number or total -> flag/missing_data; duplicate invoice number plus vendor -> reject/duplicate; no direct PO or vendor+5% match -> reject/no_po_match; cumulative matched-PO amount within tolerance -> approve/within_tolerance; over tolerance -> flag/amount_mismatch; under approval threshold -> pending/partial.
+Missing invoice number or total -> flag/missing_data; duplicate invoice number plus vendor -> reject/duplicate; no direct PO or vendor+5% match -> reject/no_po_match; explicit PO whose vendor differs from the invoice vendor -> reject/vendor_po_mismatch; cumulative matched-PO amount within tolerance -> approve/within_tolerance; over tolerance -> flag/amount_mismatch; under approval threshold -> pending/partial.
 
 ## Key flows
 1. Choose one of seven samples or upload a PDF.

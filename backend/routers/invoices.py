@@ -172,8 +172,12 @@ async def _find_match(fields: InvoiceFields) -> tuple[PurchaseOrder | None, str 
     return None, None
 
 
+def _same_vendor(invoice_vendor: str | None, po_vendor: str) -> bool:
+    return bool(invoice_vendor) and invoice_vendor.strip().casefold() == po_vendor.strip().casefold()
+
+
 async def _cumulative_for_po(po_number: str) -> float:
-    rows = await db.invoices.find({"po_number": po_number, "reason_code": {"$ne": "duplicate"}}).to_list(1000)
+    rows = await db.invoices.find({"po_number": po_number, "reason_code": {"$nin": ["duplicate", "vendor_po_mismatch"]}}).to_list(1000)
     return sum(float(row.get("extracted", {}).get("total_amount") or 0) for row in rows)
 
 
@@ -197,6 +201,19 @@ async def _process_fields(fields: InvoiceFields, extraction_source: str) -> Invo
         reference = fields.po_reference or "the vendor and amount"
         response = InvoiceProcessResponse(**base, decision="reject", reason_code="no_po_match", reason=f"No purchase order matched {reference}; direct PO lookup and the vendor + 5% amount fallback both returned no result.")
         await db.invoices.insert_one({**response.model_dump(mode="json"), "po_number": None, "demo_seed": False})
+        return response
+
+    if fields.po_reference and not _same_vendor(fields.vendor_name, matched_po.vendor_name):
+        invoice_vendor = fields.vendor_name or "an unknown vendor"
+        response = InvoiceProcessResponse(
+            **base,
+            matched_po=matched_po,
+            match_method=match_method,
+            decision="reject",
+            reason_code="vendor_po_mismatch",
+            reason=f"{matched_po.po_number} belongs to {matched_po.vendor_name}, not {invoice_vendor} — this invoice cannot be matched to a PO it doesn't belong to.",
+        )
+        await db.invoices.insert_one({**response.model_dump(mode="json"), "po_number": matched_po.po_number, "demo_seed": False})
         return response
 
     cumulative = await _cumulative_for_po(matched_po.po_number) + (fields.total_amount or 0)

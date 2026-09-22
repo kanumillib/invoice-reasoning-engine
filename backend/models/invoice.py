@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 Decision = Literal["approve", "flag", "reject", "pending"]
 ExtractionSource = Literal["text_layer", "ocr"]
-ReasonCode = Literal["missing_data", "duplicate", "no_po_match", "amount_mismatch", "partial", "within_tolerance"]
+ReasonCode = Literal["missing_data", "duplicate", "no_po_match", "vendor_po_mismatch", "amount_mismatch", "partial", "within_tolerance"]
 
 
 class PurchaseOrder(BaseModel):
